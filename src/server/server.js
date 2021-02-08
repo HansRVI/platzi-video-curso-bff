@@ -12,7 +12,7 @@ import { Provider } from "react-redux";
 import { createStore } from "redux";
 import reducer from "../frontend/reducers";
 import Layout from "../frontend/components/Layout";
-import initialState from "../frontend/initialState";
+// import initialState from "../frontend/initialState"; se elimita este initialState para que no de un conflicto
 import serverRoutes from "../frontend/routes/serverRoutes";
 import getManifest from "./getManifest";
 
@@ -26,6 +26,8 @@ dotenv.config();
 
 const app = express();
 const { ENV, PORT } = process.env;
+
+const TWO_HOURS_IN_SEC = 7200000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -80,12 +82,42 @@ const setResponse = (html, preloadedState, manifest) => {
 };
 
 const renderApp = (req, res) => {
-	const store = createStore(reducer, initialState);
+	// verificar si la sesion esta iniciada
+	let initialState;
+	const { email, name, id } = req.cookies;
+
+	if (id) {
+		//// creando un nuevo initialState con los siguientes elementos
+		initialState = {
+			user: {
+				email,
+				name,
+				id,
+			},
+			myList: [],
+			trends: [],
+			originals: [],
+		};
+		////
+	} else {
+		// else por si no se a logeado todavia
+		initialState = {
+			user: {},
+			myList: [],
+			trends: [],
+			originals: [],
+		};
+	}
+	//
+
+	const store = createStore(reducer, initialState); // al crear el store ya tenemos los elementos en el initialState que necesitamos es decir lo de validar si esa logeado o no
 	const preloadedState = store.getState();
+	const isLogged = initialState.user.id; // de esta forma se garantiza que si estoy mandando un valor que es booleano
 	const html = renderToString(
 		<Provider store={store}>
 			<StaticRouter location={req.url} context={{}}>
-				<Layout>{renderRoutes(serverRoutes)}</Layout>
+				<Layout>{renderRoutes(serverRoutes(isLogged))}</Layout>{" "}
+				{/* // actualizamos serverRoutes pasandole isLogged asi sabe si esta logeado o no y puede hacer la verificacion en cada ruta */}
 			</StaticRouter>
 		</Provider>,
 	);
@@ -102,9 +134,9 @@ app.post("/auth/sign-in", async function (req, res, next) {
 				next(boom.unauthorized());
 			}
 
-			req.login(data, { session: false }, async function (error) {
-				if (error) {
-					next(error);
+			req.login(data, { session: false }, async function (err) {
+				if (err) {
+					next(err);
 				}
 
 				const { token, ...user } = data;
@@ -113,15 +145,17 @@ app.post("/auth/sign-in", async function (req, res, next) {
 				// de lo contrario la expiración será en 2 horas
 
 				res.cookie("token", token, {
-					httpOnly: !config.dev,
-					secure: !config.dev,
+					httpOnly: !(ENV === "development"),
+					secure: !(ENV === "development"),
 					maxAge: rememberMe ? THIRTY_DAYS_IN_SEC : TWO_HOURS_IN_SEC,
 				});
-
+				// probando cosas que tiene el user en si
+				console.log(user);
+				// probando cosas que tiene el user en si
 				res.status(200).json(user);
 			});
-		} catch (error) {
-			next(error);
+		} catch (err) {
+			next(err);
 		}
 	})(req, res, next);
 });

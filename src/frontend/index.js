@@ -22,7 +22,8 @@ delete window.__PRELOADED_STATE__;
 ReactDOM.hydrate(
 	<Provider store={store}>
 		<Router history={history}>
-			<App />
+			{/* se encampsula entre patentesis para que devulva un valor true o false */}
+			<App isLogged={preloadedState.user.id} />
 		</Router>
 	</Provider>,
 	document.getElementById("app"),
