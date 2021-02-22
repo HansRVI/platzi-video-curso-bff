@@ -84,7 +84,7 @@ const setResponse = (html, preloadedState, manifest) => {
 const renderApp = async (req, res) => {
 	// verificar si la sesion esta iniciada
 	let initialState;
-	const { email, name, id } = req.cookies;
+	const { token, email, name, id } = req.cookies;
 
 	try {
 		let movieList = await axios({
