@@ -81,34 +81,38 @@ const setResponse = (html, preloadedState, manifest) => {
       </html>`;
 };
 
-const renderApp = (req, res) => {
+const renderApp = async (req, res) => {
 	// verificar si la sesion esta iniciada
 	let initialState;
 	const { email, name, id } = req.cookies;
 
-	if (id) {
-		//// creando un nuevo initialState con los siguientes elementos
+	try {
+		let movieList = await axios({
+			url: `${process.env.API_URL}/api/movies`,
+			headers: { Authorization: `Bearer ${token}` },
+			method: "get",
+		});
+		movieList = movieList.data.data; // es porque axios regresa los valores dentro de un objeto llamado data y tambien nuestra api regresa los valores dentro de un obajeto llamado data
 		initialState = {
 			user: {
+				id,
 				email,
 				name,
-				id,
 			},
 			myList: [],
-			trends: [],
-			originals: [],
+			trends: movieList.filter((movie) => movie.contentRating === "PG" && movie._id),
+			originals: movieList.filter((movie) => movie.contentRating === "G" && movie._id),
 		};
-		////
-	} else {
-		// else por si no se a logeado todavia
+	} catch (err) {
+		// para poder mostrar un initialState vacio si no se logra loggear
 		initialState = {
 			user: {},
 			myList: [],
 			trends: [],
 			originals: [],
 		};
+		//---termina--- para poder mostrar un initialState vacio si no se logra loggear
 	}
-	//
 
 	const store = createStore(reducer, initialState); // al crear el store ya tenemos los elementos en el initialState que necesitamos es decir lo de validar si esa logeado o no
 	const preloadedState = store.getState();
@@ -116,7 +120,7 @@ const renderApp = (req, res) => {
 	const html = renderToString(
 		<Provider store={store}>
 			<StaticRouter location={req.url} context={{}}>
-				<Layout>{renderRoutes(serverRoutes(isLogged))}</Layout>{" "}
+				<Layout>{renderRoutes(serverRoutes(isLogged))}</Layout>
 				{/* // actualizamos serverRoutes pasandole isLogged asi sabe si esta logeado o no y puede hacer la verificacion en cada ruta */}
 			</StaticRouter>
 		</Provider>,
