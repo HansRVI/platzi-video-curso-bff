@@ -6,7 +6,9 @@
   "scripts": {
     "build": "webpack-cli --config webpack.config.js --colors",
     "lint": "eslint src/frontend --fix",
-    "start:dev": "nodemon src/server/index"
+    "start:dev": "nodemon src/server/index",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "keywords": [
     "react",
@@ -73,5 +75,14 @@
     "sass-loader": "^7.3.1",
     "style-loader": "^0.23.1",
     "webpack-manifest-plugin": "^2.2.0"
+  },
+  "jest": {
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/frontend/__test__/setupTest.js"
+    ],
+    "moduleNameMapper": {
+      "\\.(jpg|jpeg|png|gif)$": "<rootDir>/src/frontend/__mocks__/fileMock.js",
+      "\\.(scss|css|sass)$": "<rootDir>/src/frontend/__mocks__/styleMock.js"
+    }
   }
 }
